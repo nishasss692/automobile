@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: modstack_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://modstack:modstack_pass@db:5432/modstack_db
+      - REDIS_URL=redis://cache:6379/0
+      - SECRET_KEY=modstack_super_secret_jwt_key_2026
+    depends_on:
+      - db
+      - cache
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: modstack_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    container_name: modstack_db
+    environment:
+      - POSTGRES_USER=modstack
+      - POSTGRES_PASSWORD=modstack_pass
+      - POSTGRES_DB=modstack_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  cache:
+    image: redis:7-alpine
+    container_name: modstack_cache
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
